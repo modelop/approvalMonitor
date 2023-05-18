@@ -51,6 +51,20 @@ def metrics(data: pd.DataFrame):
 	response = notifications_api.find_all_by_deployable_model_id(uuid.UUID(DEPLOYABLE_MODEL.get('id')))
 	if response.get('_embedded', {}).get('notifications', None) is not None:
 		notifications = response['_embedded']['notifications']
+
+		#
+		# Also add in any notifications that are for the base stored model, where the deployable model id is not set
+		#
+		if DEPLOYABLE_MODEL.get('storedModel', {}).get('id', None) is not None:
+			response = notifications_api.find_all_by_stored_model_id(uuid.UUID(DEPLOYABLE_MODEL.get('storedModel', {}).get('id')))
+			if response.get('_embedded', {}).get('notifications', None) is not None:
+				for notification in response['_embedded']['notifications']:
+					if notification.get('deployableModelId', None) is None:
+						notifications.append(notification)
+
+		#
+		# Now convert all found notifications
+		#
 		for notification in notifications:
 			if notification.get('notificationType', None) == 'MODEL_APPROVAL_NOTIFICATION':
 				results['totalApprovals'] += 1
